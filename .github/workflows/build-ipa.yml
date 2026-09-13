@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p build/Payload
           cp -r build/Sonance.xcarchive/Products/Applications/Sonance.app build/Payload/
+          rm -rf build/Payload/Sonance.app/PlugIns
           cd build
           zip -qr Sonance.ipa Payload
           cd ..

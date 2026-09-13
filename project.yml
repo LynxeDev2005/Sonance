@@ -21,8 +21,6 @@ targets:
       path: Sonance/Info.plist
     entitlements:
       path: Sonance/Sonance.entitlements
-    dependencies:
-      - target: SonanceWidgetExtension
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.sonance.player
       PRODUCT_NAME: Sonance
