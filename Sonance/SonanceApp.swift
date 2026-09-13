@@ -1,14 +1,18 @@
 import SwiftUI
 import AVFoundation
 
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        AudioSessionManager.shared.configureAudioSession()
+        return true
+    }
+}
+
 @main
 struct SonanceApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Environment(\.scenePhase) private var scenePhase
-    
-    init() {
-        // Bootstrap Background Audio Session
-        AudioSessionManager.shared.configureAudioSession()
-    }
     
     var body: some Scene {
         WindowGroup {
