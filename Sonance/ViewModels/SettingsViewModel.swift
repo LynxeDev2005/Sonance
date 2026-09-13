@@ -18,7 +18,6 @@ public final class SettingsViewModel: ObservableObject {
     }
     
     public func calculateStorageUsage() {
-        let docs = LocalFileManager.shared.documentsDirectory
         let musicDir = LocalFileManager.shared.musicDirectory
         let artworkDir = LocalFileManager.shared.artworkDirectory
         

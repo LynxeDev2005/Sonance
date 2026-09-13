@@ -77,8 +77,8 @@ public final class NowPlayingManager {
             return .success
         }
         
-        commandCenter.togglePlayPauseMusicCommand.isEnabled = true
-        commandCenter.togglePlayPauseMusicCommand.addTarget { [weak self] _ in
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
             self?.onTogglePlayPause?()
             return .success
         }

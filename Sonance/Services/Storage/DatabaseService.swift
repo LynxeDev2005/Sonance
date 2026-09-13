@@ -36,7 +36,7 @@ public final class DatabaseService: ObservableObject {
         }
         
         do {
-            let container = try JSONDecoder().decode(DatabaseContainer, from: data)
+            let container = try JSONDecoder().decode(DatabaseContainer.self, from: data)
             self.songs = container.songs
             self.playlists = container.playlists
             self.favoriteSongIds = container.favoriteSongIds
