@@ -42,6 +42,8 @@ targets:
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.sonance.player.widget
       PRODUCT_NAME: SonanceWidgetExtension
+      PRODUCT_BUNDLE_PACKAGE_TYPE: "XPC!"
+      GENERATE_INFOPLIST_KEY_CFBundlePackageType: "XPC!"
       CODE_SIGN_IDENTITY: ""
       CODE_SIGNING_REQUIRED: "NO"
       CODE_SIGNING_ALLOWED: "NO"
