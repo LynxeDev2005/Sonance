@@ -48,28 +48,11 @@ public final class MetadataExtractor {
             }
         }
         
-        // Load metadata formats
-        if let metadata = try? await asset.load(.metadata) {
+        // Fast batch load common metadata
+        if let metadata = try? await asset.load(.commonMetadata) {
             for item in metadata {
-                guard let commonKey = item.commonKey else {
-                    // Check non-common ID3 keys
-                    if let keyString = item.key as? String {
-                        if keyString == "USLT" || keyString == "ULT" {
-                            plainLyrics = try? await item.load(.stringValue)
-                        } else if keyString == "TRCK" || keyString == "trackNumber" {
-                            if let str = try? await item.load(.stringValue) {
-                                trackNumber = Int(str.components(separatedBy: "/").first ?? "")
-                            }
-                        } else if keyString == "TYER" || keyString == "TDRC" {
-                            if let str = try? await item.load(.stringValue), let y = Int(str.prefix(4)) {
-                                year = y
-                            }
-                        }
-                    }
-                    continue
-                }
-                
-                switch commonKey {
+                guard let key = item.commonKey else { continue }
+                switch key {
                 case .commonKeyTitle:
                     if let val = try? await item.load(.stringValue), !val.trimmingCharacters(in: .whitespaces).isEmpty {
                         title = val
@@ -84,11 +67,7 @@ public final class MetadataExtractor {
                     }
                 case .commonKeyArtwork:
                     if let data = try? await item.load(.dataValue) {
-                        artworkRelativePath = saveArtwork(data: data, identifier: "\(artist)-\(album)")
-                    }
-                case .commonKeyCreationDate:
-                    if let str = try? await item.load(.stringValue), let y = Int(str.prefix(4)) {
-                        year = y
+                        artworkRelativePath = saveArtwork(data: data, identifier: "\(artist)-\(album)-\(title)")
                     }
                 case .commonKeyType:
                     if let val = try? await item.load(.stringValue) {
@@ -97,6 +76,15 @@ public final class MetadataExtractor {
                 default:
                     break
                 }
+            }
+        }
+        
+        // Smart fallback: if title is still filename, extract "Artist - Title" pattern
+        if title == fallbackTitle && fallbackTitle.contains(" - ") {
+            let parts = fallbackTitle.components(separatedBy: " - ")
+            if parts.count >= 2 {
+                artist = parts[0].trimmingCharacters(in: .whitespaces)
+                title = parts.dropFirst().joined(separator: " - ").trimmingCharacters(in: .whitespaces)
             }
         }
         

@@ -41,8 +41,8 @@ public final class DatabaseService: ObservableObject {
             self.playlists = container.playlists
             self.favoriteSongIds = container.favoriteSongIds
             
-            // Reconstruct history
-            let songMap = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
+            // Reconstruct history safely
+            let songMap = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             self.playHistory = container.playHistoryIds.compactMap { songMap[$0] }
         } catch {
             print("[DatabaseService] Failed to decode database: \(error)")
@@ -81,9 +81,9 @@ public final class DatabaseService: ObservableObject {
     // MARK: - Song Mutations
     
     public func updateSongs(_ newSongs: [Song]) {
-        // Merge existing favorites & play counts
+        // Merge existing favorites & play counts safely without crash
         var merged: [Song] = []
-        let existingMap = Dictionary(uniqueKeysWithValues: self.songs.map { ($0.relativePath, $0) })
+        let existingMap = Dictionary(self.songs.map { ($0.relativePath, $0) }, uniquingKeysWith: { first, _ in first })
         
         for var song in newSongs {
             if let existing = existingMap[song.relativePath] {

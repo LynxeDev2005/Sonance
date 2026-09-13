@@ -32,13 +32,18 @@ public final class LocalFileManager: ObservableObject {
     
     // MARK: - Directory Scanning
     
-    /// Deep scans the Music folder and updates DatabaseService
+    /// Deep scans the entire Documents directory (including Music subfolder and direct Files app drops) and updates DatabaseService
     public func scanMusicDirectory() async {
         await MainActor.run { isScanning = true }
         
         let fm = FileManager.default
+        let ignoredFolders: Set<String> = [
+            AppConstants.Directories.artworkFolder.lowercased(),
+            AppConstants.Directories.cacheFolder.lowercased()
+        ]
+        
         guard let enumerator = fm.enumerator(
-            at: musicDirectory,
+            at: documentsDirectory,
             includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
             options: [.skipsHiddenFiles]
         ) else {
@@ -46,22 +51,45 @@ public final class LocalFileManager: ObservableObject {
             return
         }
         
-        var parsedSongs: [Song] = []
+        var audioCandidateURLs: [URL] = []
         
         for case let fileURL as URL in enumerator {
+            let pathLower = fileURL.path.lowercased()
+            // Skip internal artwork and cache folders
+            if ignoredFolders.contains(where: { pathLower.contains("/\($0)/") || pathLower.hasSuffix("/\($0)") }) {
+                continue
+            }
+            if fileURL.lastPathComponent == AppConstants.Directories.databaseFile {
+                continue
+            }
+            
             let ext = fileURL.pathExtension.lowercased()
             if AppConstants.SupportedFormats.audioExtensions.contains(ext) {
-                // Compute relative path from Documents directory
-                let relativePath = fileURL.path.replacingOccurrences(of: documentsDirectory.path + "/", with: "")
-                var song = await MetadataExtractor.shared.extractMetadata(relativePath: relativePath)
-                
-                // Look for paired .lrc file (e.g. Song.mp3 -> Song.lrc)
-                let lrcURL = fileURL.deletingPathExtension().appendingPathExtension("lrc")
-                if let parsedLyrics = LyricsParser.shared.parse(fileURL: lrcURL) {
-                    song.lyrics = parsedLyrics
+                audioCandidateURLs.append(fileURL)
+            }
+        }
+        
+        // Concurrently parse metadata for all candidate files
+        var parsedSongs: [Song] = []
+        await withTaskGroup(of: Song?.self) { group in
+            for fileURL in audioCandidateURLs {
+                group.addTask {
+                    let relativePath = fileURL.path.replacingOccurrences(of: self.documentsDirectory.path + "/", with: "")
+                    var song = await MetadataExtractor.shared.extractMetadata(relativePath: relativePath)
+                    
+                    // Look for paired .lrc file (e.g. Song.mp3 -> Song.lrc)
+                    let lrcURL = fileURL.deletingPathExtension().appendingPathExtension("lrc")
+                    if let parsedLyrics = LyricsParser.shared.parse(fileURL: lrcURL) {
+                        song.lyrics = parsedLyrics
+                    }
+                    return song
                 }
-                
-                parsedSongs.append(song)
+            }
+            
+            for await song in group {
+                if let song = song {
+                    parsedSongs.append(song)
+                }
             }
         }
         
@@ -85,16 +113,13 @@ public final class LocalFileManager: ObservableObject {
         let targetDir: URL
         if let subfolder = destinationSubfolder, !subfolder.isEmpty {
             targetDir = musicDirectory.appendingPathComponent(subfolder, isDirectory: true)
-            try? FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
         } else {
             targetDir = musicDirectory
         }
+        try? FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
         
         for url in urls {
             let isAccessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if isAccessing { url.stopAccessingSecurityScopedResource() }
-            }
             
             var isDir: ObjCBool = false
             if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) {
@@ -107,17 +132,35 @@ public final class LocalFileManager: ObservableObject {
                 } else {
                     let ext = url.pathExtension.lowercased()
                     if AppConstants.SupportedFormats.audioExtensions.contains(ext) ||
-                       AppConstants.SupportedFormats.lyricsExtensions.contains(ext) {
+                       AppConstants.SupportedFormats.lyricsExtensions.contains(ext) ||
+                       ext.isEmpty {
                         let destURL = targetDir.appendingPathComponent(url.lastPathComponent)
-                        try? FileManager.default.removeItem(at: destURL)
+                        if FileManager.default.fileExists(atPath: destURL.path) {
+                            try? FileManager.default.removeItem(at: destURL)
+                        }
+                        
                         do {
                             try FileManager.default.copyItem(at: url, to: destURL)
                             importedCount += 1
                         } catch {
-                            print("[LocalFileManager] Failed to copy item: \(error)")
+                            // High-reliability direct byte stream fallback for sandbox transfers
+                            if let data = try? Data(contentsOf: url) {
+                                do {
+                                    try data.write(to: destURL, options: .atomic)
+                                    importedCount += 1
+                                } catch {
+                                    print("[LocalFileManager] Failed fallback write for \(url.lastPathComponent): \(error)")
+                                }
+                            } else {
+                                print("[LocalFileManager] Failed to copy item: \(error)")
+                            }
                         }
                     }
                 }
+            }
+            
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
             }
         }
         

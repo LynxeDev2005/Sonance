@@ -133,16 +133,27 @@ public struct LibraryView: View {
                     
                     // Main Content List
                     ScrollView {
-                        if fileManager.isScanning {
-                            HStack(spacing: 12) {
+                        if fileManager.isScanning && DatabaseService.shared.songs.isEmpty {
+                            VStack(spacing: 16) {
                                 ProgressView()
-                                    .tint(.white)
-                                Text("Indexing local music files...")
-                                    .font(.system(size: 14))
+                                    .tint(Color(red: 0.4, green: 0.8, blue: 1.0))
+                                Text("Scanning local music files...")
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(Color.white.opacity(0.7))
                             }
                             .padding(.top, 40)
                         } else {
+                            if fileManager.isScanning {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .tint(Color(red: 0.4, green: 0.8, blue: 1.0))
+                                    Text("Updating library...")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Color.white.opacity(0.6))
+                                }
+                                .padding(.top, 8)
+                            }
                             renderSegmentContent()
                         }
                     }
@@ -155,7 +166,19 @@ public struct LibraryView: View {
         }
         .fileImporter(
             isPresented: $showFileImporter,
-            allowedContentTypes: [.audio, .folder],
+            allowedContentTypes: [
+                .audio,
+                .folder,
+                .item,
+                .data,
+                .content,
+                UTType("public.audio") ?? .audio,
+                UTType("public.mp3") ?? .audio,
+                UTType("com.apple.m4a-audio") ?? .audio,
+                UTType("public.aifc-audio") ?? .audio,
+                UTType("public.aiff-audio") ?? .audio,
+                UTType("com.microsoft.waveform-audio") ?? .audio
+            ],
             allowsMultipleSelection: true
         ) { result in
             switch result {
