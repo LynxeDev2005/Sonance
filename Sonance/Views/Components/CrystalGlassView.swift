@@ -20,6 +20,10 @@ public struct CrystalGlassModifier: ViewModifier {
                     // 1. Crystal Water-Clear Base (UltraThin Material)
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(.ultraThinMaterial)
+
+                    // A subtle blue-white tint keeps glass legible over dark art.
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Color(red: 0.18, green: 0.28, blue: 0.42).opacity(0.16))
                     
                     // 2. Translucent Caustic Water Shimmer
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -51,6 +55,17 @@ public struct CrystalGlassModifier: ViewModifier {
                                 endPoint: .bottomTrailing
                             ),
                             lineWidth: 0.8
+                        )
+
+                    // A narrow top reflection makes each surface read as clear glass.
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.44 * specularIntensity), .clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            ),
+                            lineWidth: 1
                         )
                 }
                 .shadow(color: Color.black.opacity(0.25), radius: elevation, x: 0, y: elevation * 0.5)

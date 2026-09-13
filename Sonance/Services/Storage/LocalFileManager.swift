@@ -7,7 +7,8 @@ public struct MusicImportResult: Sendable {
     public let skippedCount: Int
     public let failedCount: Int
     public var summary: String {
-        var parts = ["Imported \(importedCount) \(importedCount == 1 ? \"file\" : \"files\")"]
+        let fileLabel = importedCount == 1 ? "file" : "files"
+        var parts = ["Imported \(importedCount) \(fileLabel)"]
         if skippedCount > 0 { parts.append("\(skippedCount) unsupported") }
         if failedCount > 0 { parts.append("\(failedCount) failed") }
         return parts.joined(separator: " • ")
@@ -208,10 +209,9 @@ public final class LocalFileManager: ObservableObject {
         do {
             // A document picker may hand us an iCloud placeholder. Ask its provider
             // to materialize the item before attempting the copy.
-            let resourceValues = try? source.resourceValues(forKeys: [.ubiquitousItemIsDownloadedKey])
-            if resourceValues?.ubiquitousItemIsDownloaded == false {
-                try? fm.startDownloadingUbiquitousItem(at: source)
-            }
+            // This is a no-op for local files and asks an iCloud/File Provider item
+            // to download when it is still a placeholder.
+            try? fm.startDownloadingUbiquitousItem(at: source)
             try fm.createDirectory(at: directory, withIntermediateDirectories: true)
             let destination = availableFile(for: source, in: directory)
             try fm.copyItem(at: source, to: destination)
