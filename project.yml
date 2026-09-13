@@ -3,12 +3,11 @@ options:
   bundleIdPrefix: com.sonance
   deploymentTarget:
     iOS: "16.1"
-  xcodeVersion: "15.0"
 
 settings:
   SWIFT_VERSION: "5.9"
   IPHONEOS_DEPLOYMENT_TARGET: "16.1"
-  TARGETED_DEVICE_FAMILY: "1" # iPhone
+  TARGETED_DEVICE_FAMILY: "1"
   ENABLE_BITCODE: "NO"
 
 targets:
@@ -17,16 +16,13 @@ targets:
     platform: iOS
     deploymentTarget: "16.1"
     sources:
-      - path: Sonance
+      - Sonance
     info:
       path: Sonance/Info.plist
-      properties:
-        UIBackgroundModes: [audio]
-        UIFileSharingEnabled: true
-        LSSupportsOpeningDocumentsInPlace: true
-        NSSupportsLiveActivities: true
     entitlements:
       path: Sonance/Sonance.entitlements
+    dependencies:
+      - target: SonanceWidgetExtension
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.sonance.player
       PRODUCT_NAME: Sonance
@@ -40,13 +36,9 @@ targets:
     platform: iOS
     deploymentTarget: "16.1"
     sources:
-      - path: SonanceWidgetExtension
-      - path: Sonance/Services/LiveActivity/SonanceActivityAttributes.swift
+      - SonanceWidgetExtension
     info:
-      properties:
-        CFBundleDisplayName: SonanceWidgetExtension
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+      path: SonanceWidgetExtension/Info.plist
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.sonance.player.widget
       PRODUCT_NAME: SonanceWidgetExtension
