@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import UIKit
 
 /// Manages the system AVAudioSession, handling background audio permissions,
 /// audio interruptions (e.g. phone calls), and route changes (e.g. AirPods disconnect)
@@ -19,6 +20,11 @@ public final class AudioSessionManager {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
             try session.setActive(true)
+            
+            // Required for SwiftUI apps to keep background audio alive!
+            DispatchQueue.main.async {
+                UIApplication.shared.beginReceivingRemoteControlEvents()
+            }
         } catch {
             print("[AudioSessionManager] Failed to configure audio session: \(error.localizedDescription)")
         }
