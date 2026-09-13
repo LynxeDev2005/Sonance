@@ -85,10 +85,18 @@ public final class LocalFileManager: ObservableObject {
         
         // Concurrently parse metadata for all candidate files
         var parsedSongs: [Song] = []
+        let docsPath = self.documentsDirectory.resolvingSymlinksInPath().path
+        
         await withTaskGroup(of: Song?.self) { group in
             for fileURL in audioCandidateURLs {
                 group.addTask {
-                    let relativePath = fileURL.path.replacingOccurrences(of: self.documentsDirectory.path + "/", with: "")
+                    let filePath = fileURL.resolvingSymlinksInPath().path
+                    var relativePath = filePath
+                    if filePath.hasPrefix(docsPath) {
+                        relativePath = String(filePath.dropFirst(docsPath.count))
+                        if relativePath.hasPrefix("/") { relativePath = String(relativePath.dropFirst()) }
+                    }
+                    
                     var song = await MetadataExtractor.shared.extractMetadata(relativePath: relativePath)
                     
                     // Look for paired .lrc file (e.g. Song.mp3 -> Song.lrc)
@@ -187,8 +195,16 @@ public final class LocalFileManager: ObservableObject {
             return (0, 0, 1)
         }
         var report = (imported: 0, skipped: 0, failed: 0)
+        let sourcePath = source.resolvingSymlinksInPath().path
+        
         for case let item as URL in enumerator {
-            let relativePath = item.path.replacingOccurrences(of: source.path + "/", with: "")
+            let itemPath = item.resolvingSymlinksInPath().path
+            var relativePath = itemPath
+            if itemPath.hasPrefix(sourcePath) {
+                relativePath = String(itemPath.dropFirst(sourcePath.count))
+                if relativePath.hasPrefix("/") { relativePath = String(relativePath.dropFirst()) }
+            }
+            
             let destinationFolder = destination.appendingPathComponent(relativePath).deletingLastPathComponent()
             var isDirectory: ObjCBool = false
             guard fm.fileExists(atPath: item.path, isDirectory: &isDirectory), !isDirectory.boolValue else { continue }
@@ -207,14 +223,23 @@ public final class LocalFileManager: ObservableObject {
                 AppConstants.SupportedFormats.lyricsExtensions.contains(extensionName) else { return .skipped }
         let fm = FileManager.default
         do {
-            // A document picker may hand us an iCloud placeholder. Ask its provider
-            // to materialize the item before attempting the copy.
-            // This is a no-op for local files and asks an iCloud/File Provider item
-            // to download when it is still a placeholder.
-            try? fm.startDownloadingUbiquitousItem(at: source)
             try fm.createDirectory(at: directory, withIntermediateDirectories: true)
             let destination = availableFile(for: source, in: directory)
-            try fm.copyItem(at: source, to: destination)
+            
+            var isMaterialized = false
+            do {
+                try fm.startDownloadingUbiquitousItem(at: source)
+                try fm.copyItem(at: source, to: destination)
+                isMaterialized = true
+            } catch {
+                print("[LocalFileManager] copyItem failed, attempting Data fallback: \(error.localizedDescription)")
+            }
+            
+            if !isMaterialized {
+                // Fallback: Read directly to memory and write (handles many security-scoped edge cases)
+                let data = try Data(contentsOf: source)
+                try data.write(to: destination, options: .atomic)
+            }
             return .imported
         } catch {
             print("[LocalFileManager] Could not import \(source.lastPathComponent): \(error.localizedDescription)")
