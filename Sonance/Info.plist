@@ -66,8 +66,8 @@
 	</array>
 
 	<!-- Modern Full Screen Resolution via Launch Screen Storyboard & Plist -->
-	<key>UILaunchScreen</key>
-	<dict/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

@@ -264,6 +264,9 @@ public final class AudioPlayerService: ObservableObject {
         
         if player == nil {
             player = AVPlayer(playerItem: playerItem)
+            if #available(iOS 15.0, *) {
+                player?.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
+            }
         } else {
             player?.replaceCurrentItem(with: playerItem)
         }
