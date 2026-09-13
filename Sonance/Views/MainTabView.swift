@@ -35,21 +35,25 @@ public struct MainTabView: View {
     
     public var body: some View {
         ZStack(alignment: .bottom) {
-            // Tab View Pages
-            TabView(selection: $selectedTab) {
+            // Tab Views with State Preservation
+            ZStack {
                 LibraryView()
-                    .tag(TabSelection.library)
+                    .opacity(selectedTab == .library ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .library)
                 
                 FolderBrowserView()
-                    .tag(TabSelection.folders)
+                    .opacity(selectedTab == .folders ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .folders)
                 
                 CloudHubView()
-                    .tag(TabSelection.cloud)
+                    .opacity(selectedTab == .cloud ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .cloud)
                 
                 SettingsView()
-                    .tag(TabSelection.settings)
+                    .opacity(selectedTab == .settings ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .settings)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             
             // Floating Overlay: MiniPlayer + Custom Crystal Glass Tab Bar

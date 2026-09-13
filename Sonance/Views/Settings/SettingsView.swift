@@ -12,7 +12,7 @@ public struct SettingsView: View {
     public init() {}
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(red: 0.05, green: 0.07, blue: 0.12).ignoresSafeArea()
                 
@@ -61,21 +61,26 @@ public struct SettingsView: View {
                                         .foregroundStyle(Color.white.opacity(0.5))
                                 }
                                 Spacer()
-                                Button("Clear Cache") {
-                                    settingsVM.clearArtworkCache()
+                                Button {
+                                    settingsVM.clearCache()
                                     showCacheClearedAlert = true
+                                } label: {
+                                    Text("Clear")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.4))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .crystalGlass(cornerRadius: 10)
                                 }
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.45))
                             }
                         }
                         .padding(20)
                         .crystalGlass(cornerRadius: 22, specularIntensity: 0.6)
                         .padding(.horizontal, 20)
                         
-                        // 2. Audio Engine Features
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Audio Processing")
+                        // 2. Audio & Playback Features
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Audio Engine & Enhancements")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Color.white.opacity(0.5))
                             
@@ -85,18 +90,14 @@ public struct SettingsView: View {
                                 HStack {
                                     Image(systemName: "slider.vertical.3")
                                         .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
-                                    Text("Parametric Equalizer")
+                                    Text("10-Band Graphic Equalizer")
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundStyle(Color.white)
                                     Spacer()
-                                    Text(settingsVM.equalizer.isEnabled ? settingsVM.equalizer.selectedPreset.name : "Off")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color.white.opacity(0.5))
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 13))
                                         .foregroundStyle(Color.white.opacity(0.3))
                                 }
-                                .padding(.vertical, 4)
                             }
                             
                             Divider().background(Color.white.opacity(0.1))
@@ -105,68 +106,57 @@ public struct SettingsView: View {
                                 showSleepTimer = true
                             } label: {
                                 HStack {
-                                    Image(systemName: "moon.stars")
-                                        .foregroundStyle(Color(red: 0.7, green: 0.4, blue: 0.95))
+                                    Image(systemName: "moon.fill")
+                                        .foregroundStyle(Color(red: 0.8, green: 0.6, blue: 1.0))
                                     Text("Sleep Timer")
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundStyle(Color.white)
                                     Spacer()
-                                    Text(settingsVM.sleepTimer.isActive ? settingsVM.sleepTimer.formattedRemainingTime : "Off")
+                                    Text(settingsVM.sleepTimerStatus)
                                         .font(.system(size: 13))
                                         .foregroundStyle(Color.white.opacity(0.5))
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 13))
                                         .foregroundStyle(Color.white.opacity(0.3))
                                 }
-                                .padding(.vertical, 4)
                             }
+                            
+                            Divider().background(Color.white.opacity(0.1))
+                            
+                            Toggle(isOn: $settingsVM.isLosslessPreferred) {
+                                HStack {
+                                    Image(systemName: "waveform")
+                                        .foregroundStyle(Color(red: 0.4, green: 0.9, blue: 0.6))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Lossless Engine Processing")
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundStyle(Color.white)
+                                        Text("Direct 32-bit float audio pipeline")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Color.white.opacity(0.4))
+                                    }
+                                }
+                            }
+                            .tint(Color(red: 0.4, green: 0.8, blue: 1.0))
                         }
                         .padding(20)
                         .crystalGlass(cornerRadius: 22, specularIntensity: 0.6)
                         .padding(.horizontal, 20)
                         
-                        // 3. Sideloading & Device Info
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Sideloading & System Status")
+                        // 3. Sideloading & Document Permissions
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Sideloading & Permissions")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Color.white.opacity(0.5))
                             
                             HStack {
-                                Image(systemName: "iphone")
+                                Image(systemName: "play.circle.fill")
                                     .foregroundStyle(Color.green)
-                                Text("Target Device")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Color.white)
-                                Spacer()
-                                Text("iPhone 12 Pro Max")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Color.white.opacity(0.6))
-                            }
-                            
-                            Divider().background(Color.white.opacity(0.1))
-                            
-                            HStack {
-                                Image(systemName: "lock.shield.fill")
-                                    .foregroundStyle(Color.green)
-                                Text("Developer Sideload Mode")
+                                Text("Background Audio (AVAudioSession)")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(Color.white)
                                 Spacer()
                                 Text("Active")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(Color.green)
-                            }
-                            
-                            Divider().background(Color.white.opacity(0.1))
-                            
-                            HStack {
-                                Image(systemName: "speaker.wave.3.fill")
-                                    .foregroundStyle(Color.green)
-                                Text("Background Audio Engine")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Color.white)
-                                Spacer()
-                                Text("Enabled")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundStyle(Color.green)
                             }
@@ -189,16 +179,40 @@ public struct SettingsView: View {
                         .crystalGlass(cornerRadius: 22, specularIntensity: 0.6)
                         .padding(.horizontal, 20)
                         
-                        // 4. About Sonance
-                        VStack(spacing: 6) {
-                            Text("Sonance Player")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Color.white)
+                        // 4. About Sonance with Logo and App Icon
+                        VStack(spacing: 12) {
+                            Image("SplashIcon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 72, height: 72)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.6), Color.white.opacity(0.1)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                                .shadow(color: Color(red: 0.3, green: 0.8, blue: 1.0).opacity(0.35), radius: 16, x: 0, y: 8)
+                            
+                            Image("SonanceLogoGradient")
+                                .resizable()
+                                .renderingMode(.original)
+                                .scaledToFit()
+                                .frame(height: 26)
+                            
                             Text("Version \(AppConstants.appVersion) • Crystal Glass Edition")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color.white.opacity(0.4))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.5))
                         }
-                        .padding(.top, 8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .crystalGlass(cornerRadius: 24, specularIntensity: 0.5)
+                        .padding(.horizontal, 20)
                         .padding(.bottom, 120)
                     }
                 }

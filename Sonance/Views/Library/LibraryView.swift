@@ -15,25 +15,36 @@ public struct LibraryView: View {
     public init() {}
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(red: 0.05, green: 0.07, blue: 0.12).ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header Bar
-                    HStack {
-                        Text("Sonance")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.8, green: 0.9, blue: 1.0),
-                                        Color(red: 0.4, green: 0.8, blue: 1.0)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                    // Header Bar with Sonance Logo & Icon
+                    HStack(spacing: 10) {
+                        Image("SplashIcon")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 34, height: 34)
+                            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.5), Color.white.opacity(0.1)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
                             )
+                            .shadow(color: Color(red: 0.3, green: 0.8, blue: 1.0).opacity(0.3), radius: 8, x: 0, y: 3)
+                        
+                        Image("SonanceLogoGradient")
+                            .resizable()
+                            .renderingMode(.original)
+                            .scaledToFit()
+                            .frame(height: 24)
                         
                         Spacer()
                         
@@ -393,7 +404,7 @@ public struct LibraryView: View {
     }
     
     private var createPlaylistSheetView: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(red: 0.05, green: 0.07, blue: 0.12).ignoresSafeArea()
                 

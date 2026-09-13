@@ -12,9 +12,18 @@ public final class SettingsViewModel: ObservableObject {
     @Published public var totalMusicSize: String = "0 MB"
     @Published public var cacheSize: String = "0 MB"
     @Published public var totalTrackCount: Int = 0
+    @Published public var isLosslessPreferred: Bool = true
+    
+    public var sleepTimerStatus: String {
+        sleepTimer.isActive ? sleepTimer.formattedRemainingTime : "Off"
+    }
     
     private init() {
         calculateStorageUsage()
+    }
+    
+    public func clearCache() {
+        clearArtworkCache()
     }
     
     public func calculateStorageUsage() {

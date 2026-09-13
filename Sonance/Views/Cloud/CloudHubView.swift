@@ -17,7 +17,7 @@ public struct CloudHubView: View {
     public init() {}
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(red: 0.05, green: 0.07, blue: 0.12).ignoresSafeArea()
                 
@@ -258,7 +258,7 @@ public struct CloudHubView: View {
             }
         }
         .sheet(isPresented: $showGoogleDriveBrowser) {
-            NavigationView {
+            NavigationStack {
                 GoogleDriveBrowserView()
             }
         }
