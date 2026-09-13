@@ -79,7 +79,7 @@ public struct MainTabView: View {
     }
 }
 
-/// A clear glass navigation capsule with one shared indicator that glides between tabs.
+/// A clear glass navigation capsule with one shared indicator that glides horizontally between tabs.
 private struct CrystalPillTabBar: View {
     @Binding var selection: TabSelection
     var selectionNamespace: Namespace.ID
@@ -108,6 +108,7 @@ private struct CrystalPillTabBar: View {
                                 )
                                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.36), lineWidth: 0.8))
                                 .matchedGeometryEffect(id: "active-tab", in: selectionNamespace)
+                                .frame(height: 54)
                         }
 
                         VStack(spacing: 3) {
@@ -120,7 +121,8 @@ private struct CrystalPillTabBar: View {
                         .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.5))
                         .shadow(color: isSelected ? Color.cyan.opacity(0.42) : .clear, radius: 7)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 54)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -128,7 +130,8 @@ private struct CrystalPillTabBar: View {
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .padding(6)
-        .crystalGlass(cornerRadius: 30, specularIntensity: 1, elevation: 16)
+        .padding(.horizontal, 6)
+        .frame(height: 66)
+        .crystalGlass(cornerRadius: 33, specularIntensity: 1, elevation: 16)
     }
 }
