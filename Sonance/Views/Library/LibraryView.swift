@@ -11,6 +11,7 @@ public struct LibraryView: View {
     @State private var showFileImporter = false
     @State private var showCreatePlaylistSheet = false
     @State private var newPlaylistName = ""
+    @State private var importSummary: String?
     
     public init() {}
     
@@ -166,25 +167,14 @@ public struct LibraryView: View {
         }
         .fileImporter(
             isPresented: $showFileImporter,
-            allowedContentTypes: [
-                .audio,
-                .folder,
-                .item,
-                .data,
-                .content,
-                UTType("public.audio") ?? .audio,
-                UTType("public.mp3") ?? .audio,
-                UTType("com.apple.m4a-audio") ?? .audio,
-                UTType("public.aifc-audio") ?? .audio,
-                UTType("public.aiff-audio") ?? .audio,
-                UTType("com.microsoft.waveform-audio") ?? .audio
-            ],
+            allowedContentTypes: [.audio, .folder],
             allowsMultipleSelection: true
         ) { result in
             switch result {
             case .success(let urls):
                 Task {
-                    _ = await fileManager.importFiles(from: urls)
+                    let result = await fileManager.importFiles(from: urls)
+                    importSummary = result.summary
                 }
             case .failure(let error):
                 print("[LibraryView] File import failed: \(error)")
@@ -192,6 +182,14 @@ public struct LibraryView: View {
         }
         .sheet(isPresented: $showCreatePlaylistSheet) {
             createPlaylistSheetView
+        }
+        .alert("Music Import", isPresented: Binding(
+            get: { importSummary != nil },
+            set: { if !$0 { importSummary = nil } }
+        )) {
+            Button("Done", role: .cancel) { importSummary = nil }
+        } message: {
+            Text(importSummary ?? "")
         }
     }
     
@@ -279,7 +277,7 @@ public struct LibraryView: View {
     }
     
     private var albumsGridView: some View {
-        let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+        let columns = [GridItem(.adaptive(minimum: 150, maximum: 240), spacing: 16)]
         return LazyVGrid(columns: columns, spacing: 20) {
             ForEach(libraryVM.albums) { album in
                 NavigationLink {

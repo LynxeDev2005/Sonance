@@ -2,12 +2,25 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
+public struct MusicImportResult: Sendable {
+    public let importedCount: Int
+    public let skippedCount: Int
+    public let failedCount: Int
+    public var summary: String {
+        var parts = ["Imported \(importedCount) \(importedCount == 1 ? \"file\" : \"files\")"]
+        if skippedCount > 0 { parts.append("\(skippedCount) unsupported") }
+        if failedCount > 0 { parts.append("\(failedCount) failed") }
+        return parts.joined(separator: " • ")
+    }
+}
+
 /// Manages the local file system sandbox, directory scanning, and music ingestion
 public final class LocalFileManager: ObservableObject {
     public static let shared = LocalFileManager()
     
     @Published public var isScanning: Bool = false
     @Published public var rootFolder: AudioFolder?
+    @Published public var latestImportResult: MusicImportResult?
     
     public let documentsDirectory: URL
     public let musicDirectory: URL
@@ -108,93 +121,130 @@ public final class LocalFileManager: ObservableObject {
     // MARK: - File Ingestion (From Files app / iCloud / External Picker)
     
     /// Imports audio files or folders selected by the user into the local Documents/Music folder
-    public func importFiles(from urls: [URL], destinationSubfolder: String? = nil) async -> Int {
-        var importedCount = 0
+    public func importFiles(from urls: [URL], destinationSubfolder: String? = nil) async -> MusicImportResult {
         let targetDir: URL
         if let subfolder = destinationSubfolder, !subfolder.isEmpty {
             targetDir = musicDirectory.appendingPathComponent(subfolder, isDirectory: true)
         } else {
             targetDir = musicDirectory
         }
-        try? FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
-        
-        for url in urls {
-            let isAccessing = url.startAccessingSecurityScopedResource()
-            
-            var isDir: ObjCBool = false
-            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) {
-                if isDir.boolValue {
-                    // Recursive directory copy
-                    let folderName = url.lastPathComponent
-                    let destFolder = targetDir.appendingPathComponent(folderName, isDirectory: true)
-                    try? FileManager.default.createDirectory(at: destFolder, withIntermediateDirectories: true)
-                    importedCount += await copyFolderContents(from: url, to: destFolder)
-                } else {
-                    let ext = url.pathExtension.lowercased()
-                    if AppConstants.SupportedFormats.audioExtensions.contains(ext) ||
-                       AppConstants.SupportedFormats.lyricsExtensions.contains(ext) ||
-                       ext.isEmpty {
-                        let destURL = targetDir.appendingPathComponent(url.lastPathComponent)
-                        if FileManager.default.fileExists(atPath: destURL.path) {
-                            try? FileManager.default.removeItem(at: destURL)
-                        }
-                        
-                        do {
-                            try FileManager.default.copyItem(at: url, to: destURL)
-                            importedCount += 1
-                        } catch {
-                            // High-reliability direct byte stream fallback for sandbox transfers
-                            if let data = try? Data(contentsOf: url) {
-                                do {
-                                    try data.write(to: destURL, options: .atomic)
-                                    importedCount += 1
-                                } catch {
-                                    print("[LocalFileManager] Failed fallback write for \(url.lastPathComponent): \(error)")
-                                }
-                            } else {
-                                print("[LocalFileManager] Failed to copy item: \(error)")
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if isAccessing {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        
+        let result = await Task.detached(priority: .utility) {
+            Self.copySelectedItems(urls, to: targetDir)
+        }.value
         await scanMusicDirectory()
-        return importedCount
+        await MainActor.run { self.latestImportResult = result }
+        return result
     }
-    
-    private func copyFolderContents(from source: URL, to destination: URL) async -> Int {
-        var count = 0
+
+    /// Runs away from the main actor: iCloud/File Provider copies can take seconds.
+    private static func copySelectedItems(_ urls: [URL], to targetDir: URL) -> MusicImportResult {
         let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(at: source, includingPropertiesForKeys: nil) else {
-            return 0
+        var imported = 0
+        var skipped = 0
+        var failed = 0
+        do {
+            try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
+        } catch {
+            return MusicImportResult(importedCount: 0, skippedCount: 0, failedCount: urls.count)
         }
-        
-        for item in contents {
+
+        for source in urls {
+            let isAccessing = source.startAccessingSecurityScopedResource()
+
             var isDir: ObjCBool = false
-            if fm.fileExists(atPath: item.path, isDirectory: &isDir) {
-                if isDir.boolValue {
-                    let subDest = destination.appendingPathComponent(item.lastPathComponent, isDirectory: true)
-                    try? fm.createDirectory(at: subDest, withIntermediateDirectories: true)
-                    count += await copyFolderContents(from: item, to: subDest)
-                } else {
-                    let ext = item.pathExtension.lowercased()
-                    if AppConstants.SupportedFormats.audioExtensions.contains(ext) ||
-                       AppConstants.SupportedFormats.lyricsExtensions.contains(ext) {
-                        let destURL = destination.appendingPathComponent(item.lastPathComponent)
-                        try? fm.removeItem(at: destURL)
-                        try? fm.copyItem(at: item, to: destURL)
-                        count += 1
-                    }
+            guard fm.fileExists(atPath: source.path, isDirectory: &isDir) else {
+                failed += 1
+                if isAccessing { source.stopAccessingSecurityScopedResource() }
+                continue
+            }
+
+            if isDir.boolValue {
+                let folderDestination = availableDirectory(for: source.lastPathComponent, in: targetDir)
+                let report = copyFolderContents(from: source, to: folderDestination)
+                imported += report.imported
+                skipped += report.skipped
+                failed += report.failed
+            } else {
+                switch copyFile(from: source, to: targetDir) {
+                case .imported: imported += 1
+                case .skipped: skipped += 1
+                case .failed: failed += 1
                 }
             }
+            if isAccessing { source.stopAccessingSecurityScopedResource() }
         }
-        return count
+        return MusicImportResult(importedCount: imported, skippedCount: skipped, failedCount: failed)
+    }
+
+    private enum CopyOutcome { case imported, skipped, failed }
+
+    private static func copyFolderContents(from source: URL, to destination: URL) -> (imported: Int, skipped: Int, failed: Int) {
+        let fm = FileManager.default
+        do { try fm.createDirectory(at: destination, withIntermediateDirectories: true) }
+        catch { return (0, 0, 1) }
+        guard let enumerator = fm.enumerator(at: source, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) else {
+            return (0, 0, 1)
+        }
+        var report = (imported: 0, skipped: 0, failed: 0)
+        for case let item as URL in enumerator {
+            let relativePath = item.path.replacingOccurrences(of: source.path + "/", with: "")
+            let destinationFolder = destination.appendingPathComponent(relativePath).deletingLastPathComponent()
+            var isDirectory: ObjCBool = false
+            guard fm.fileExists(atPath: item.path, isDirectory: &isDirectory), !isDirectory.boolValue else { continue }
+            switch copyFile(from: item, to: destinationFolder) {
+            case .imported: report.imported += 1
+            case .skipped: report.skipped += 1
+            case .failed: report.failed += 1
+            }
+        }
+        return report
+    }
+
+    private static func copyFile(from source: URL, to directory: URL) -> CopyOutcome {
+        let extensionName = source.pathExtension.lowercased()
+        guard AppConstants.SupportedFormats.audioExtensions.contains(extensionName) ||
+                AppConstants.SupportedFormats.lyricsExtensions.contains(extensionName) else { return .skipped }
+        let fm = FileManager.default
+        do {
+            // A document picker may hand us an iCloud placeholder. Ask its provider
+            // to materialize the item before attempting the copy.
+            let resourceValues = try? source.resourceValues(forKeys: [.ubiquitousItemIsDownloadedKey])
+            if resourceValues?.ubiquitousItemIsDownloaded == false {
+                try? fm.startDownloadingUbiquitousItem(at: source)
+            }
+            try fm.createDirectory(at: directory, withIntermediateDirectories: true)
+            let destination = availableFile(for: source, in: directory)
+            try fm.copyItem(at: source, to: destination)
+            return .imported
+        } catch {
+            print("[LocalFileManager] Could not import \(source.lastPathComponent): \(error.localizedDescription)")
+            return .failed
+        }
+    }
+
+    /// Never overwrite a user's existing music when two imports contain the same name.
+    private static func availableFile(for source: URL, in directory: URL) -> URL {
+        let fm = FileManager.default
+        let base = source.deletingPathExtension().lastPathComponent
+        let ext = source.pathExtension
+        var candidate = directory.appendingPathComponent(source.lastPathComponent)
+        var copyNumber = 2
+        while fm.fileExists(atPath: candidate.path) {
+            candidate = directory.appendingPathComponent("\(base) \(copyNumber).\(ext)")
+            copyNumber += 1
+        }
+        return candidate
+    }
+
+    private static func availableDirectory(for name: String, in parent: URL) -> URL {
+        let fm = FileManager.default
+        var candidate = parent.appendingPathComponent(name, isDirectory: true)
+        var copyNumber = 2
+        while fm.fileExists(atPath: candidate.path) {
+            candidate = parent.appendingPathComponent("\(name) \(copyNumber)", isDirectory: true)
+            copyNumber += 1
+        }
+        return candidate
     }
     
     /// Deletes a song physically from the disk

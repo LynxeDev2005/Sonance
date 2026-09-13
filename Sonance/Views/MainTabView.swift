@@ -34,7 +34,7 @@ public struct MainTabView: View {
     public init() {}
     
     public var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             // Tab Views with State Preservation
             ZStack {
                 LibraryView()
@@ -54,13 +54,15 @@ public struct MainTabView: View {
                     .allowsHitTesting(selectedTab == .settings)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
-            
-            // Floating Overlay: MiniPlayer + Custom Crystal Glass Tab Bar
+        }
+        // The system reserves this area on every device/orientation, so scrollable
+        // content is never hidden below the player or Home indicator.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
                 // Mini Player (Only visible when track is loaded)
                 if audioService.currentSong != nil {
                     MiniPlayerView()
+                        .frame(maxWidth: 680)
                 }
                 
                 // Custom Crystal Bottom Bar
@@ -93,7 +95,9 @@ public struct MainTabView: View {
                 .crystalGlass(cornerRadius: 32, specularIntensity: 0.75, elevation: 12)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 6)
+                .frame(maxWidth: 680)
             }
+            .padding(.top, 8)
         }
         .fullScreenCover(isPresented: $playerVM.showFullPlayer) {
             FullPlayerView()

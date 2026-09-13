@@ -3,7 +3,9 @@ import SwiftUI
 
 /// Core track entity representing an audio file in Sonance
 public struct Song: Identifiable, Codable, Hashable {
-    public let id: UUID
+    /// Kept stable when a library scan refreshes metadata, so playlists, favorites,
+    /// and the active queue continue to refer to the same track.
+    public var id: UUID
     public var relativePath: String // Relative to Documents directory
     public var title: String
     public var artist: String

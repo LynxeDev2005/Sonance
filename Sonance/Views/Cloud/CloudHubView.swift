@@ -13,6 +13,7 @@ public struct CloudHubView: View {
     @State private var showDownloadQueue = false
     @State private var authError: String?
     @State private var isSigningIn = false
+    @State private var importSummary: String?
     
     public init() {}
     
@@ -251,7 +252,8 @@ public struct CloudHubView: View {
             switch result {
             case .success(let urls):
                 Task {
-                    _ = await fileManager.importFiles(from: urls)
+                    let result = await fileManager.importFiles(from: urls)
+                    importSummary = result.summary
                 }
             case .failure(let error):
                 print("[CloudHubView] Import failed: \(error)")
@@ -261,6 +263,14 @@ public struct CloudHubView: View {
             NavigationStack {
                 GoogleDriveBrowserView()
             }
+        }
+        .alert("Music Import", isPresented: Binding(
+            get: { importSummary != nil },
+            set: { if !$0 { importSummary = nil } }
+        )) {
+            Button("Done", role: .cancel) { importSummary = nil }
+        } message: {
+            Text(importSummary ?? "")
         }
     }
     

@@ -19,6 +19,9 @@ public struct FullPlayerView: View {
                 FluidMeshBackground(song: song)
                     .ignoresSafeArea()
                 
+                GeometryReader { proxy in
+                    let artworkSize = min(max(140, min(proxy.size.width - 72, proxy.size.height * 0.38)), 420)
+                    ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     // 2. Top Header Bar
                     HStack {
@@ -84,12 +87,11 @@ public struct FullPlayerView: View {
                                 playerVM.seek(to: time)
                             }
                         )
-                        .frame(maxHeight: 380)
+                        .frame(maxHeight: max(160, min(380, proxy.size.height * 0.38)))
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     } else {
                         ArtworkImageView(artworkURL: song.artworkURL, cornerRadius: 28, showBloom: true)
-                            .padding(.horizontal, 36)
-                            .frame(maxWidth: 340, maxHeight: 340)
+                            .frame(width: artworkSize, height: artworkSize)
                             .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                     
@@ -210,6 +212,11 @@ public struct FullPlayerView: View {
                         }
                     }
                     .padding(.bottom, 24)
+                }
+                .frame(minHeight: proxy.size.height)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
+                    }
                 }
             } else {
                 Color.black.ignoresSafeArea()

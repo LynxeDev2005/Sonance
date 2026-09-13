@@ -87,17 +87,18 @@ public final class DatabaseService: ObservableObject {
         
         for var song in newSongs {
             if let existing = existingMap[song.relativePath] {
+                // Metadata is refreshed, but user-owned state must survive every scan.
+                song.id = existing.id
+                song.dateAdded = existing.dateAdded
                 song.isFavorite = existing.isFavorite
                 song.playCount = existing.playCount
-                if song.isFavorite {
-                    favoriteSongIds.insert(song.id)
-                }
             }
             merged.append(song)
         }
         
         DispatchQueue.main.async {
             self.songs = merged
+            self.favoriteSongIds = Set(merged.filter(\.isFavorite).map(\.id))
             self.saveToDisk()
         }
     }
