@@ -1,0 +1,52 @@
+name: Build Sonance IPA for Sideloading
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: |
+          xcodegen generate
+
+      - name: Build Application Archive
+        run: |
+          xcodebuild -project Sonance.xcodeproj \
+            -scheme Sonance \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Sonance.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
+
+      - name: Package into IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/Sonance.xcarchive/Products/Applications/Sonance.app build/Payload/
+          cd build
+          zip -r Sonance.ipa Payload
+          cd ..
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonance-IPA
+          path: build/Sonance.ipa
+          retention-days: 14
