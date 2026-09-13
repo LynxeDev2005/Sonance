@@ -9,7 +9,17 @@ public struct SonanceWidgetTimelineProvider: TimelineProvider {
         public let artistName: String
         public let albumName: String
         public let isPlaying: Bool
+        
+        public init(date: Date, songTitle: String, artistName: String, albumName: String, isPlaying: Bool) {
+            self.date = date
+            self.songTitle = songTitle
+            self.artistName = artistName
+            self.albumName = albumName
+            self.isPlaying = isPlaying
+        }
     }
+    
+    public init() {}
     
     public func placeholder(in context: Context) -> Entry {
         Entry(date: Date(), songTitle: "Crystal Waves", artistName: "Sonance", albumName: "Offline Master", isPlaying: true)
@@ -30,6 +40,8 @@ public struct SonanceWidgetTimelineProvider: TimelineProvider {
 /// Interactive Home Screen Widget for Sonance
 public struct NowPlayingWidget: Widget {
     let kind: String = "SonanceNowPlayingWidget"
+    
+    public init() {}
     
     public var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: SonanceWidgetTimelineProvider()) { entry in

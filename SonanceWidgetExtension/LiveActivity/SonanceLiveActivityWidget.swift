@@ -4,6 +4,8 @@ import SwiftUI
 
 /// Dynamic Island and Lock Screen Live Activity Widget for Sonance
 public struct SonanceLiveActivityWidget: Widget {
+    public init() {}
+    
     public var body: some WidgetConfiguration {
         ActivityConfiguration(for: SonanceActivityAttributes.self) { context in
             // MARK: - Lock Screen Banner (For iPhone 12 Pro Max & All iOS Lock Screens)

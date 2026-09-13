@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import Darwin
 
 /// Lightweight embedded HTTP server enabling wireless drag-and-drop music uploads from PC/Mac browser
 public final class WiFiTransferServer: ObservableObject {

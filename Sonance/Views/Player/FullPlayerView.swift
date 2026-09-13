@@ -234,6 +234,8 @@ public struct SleepTimerSheet: View {
     
     let intervals = [5, 10, 15, 30, 45, 60]
     
+    public init() {}
+    
     public var body: some View {
         NavigationView {
             ZStack {
