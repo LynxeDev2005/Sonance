@@ -135,8 +135,10 @@ public final class WiFiTransferServer: ObservableObject {
            let filenameRange = bodyString.range(of: "filename=\"") {
             let rest = String(bodyString[filenameRange.upperBound...])
             if let endQuote = rest.range(of: "\"") {
-                let filename = String(rest[..<endQuote.lowerBound])
-                if !filename.isEmpty {
+                let rawFilename = String(rest[..<endQuote.lowerBound])
+                let filename = URL(fileURLWithPath: rawFilename).lastPathComponent
+                
+                if !filename.isEmpty && filename != "/" {
                     // Extract binary payload
                     let musicDir = LocalFileManager.shared.musicDirectory
                     let destURL = musicDir.appendingPathComponent(filename)
