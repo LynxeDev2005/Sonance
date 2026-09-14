@@ -319,12 +319,30 @@ public final class AudioPlayerService: ObservableObject {
     }
     
     @objc private func playerItemDidFinishPlaying() {
+        var bgTask: UIBackgroundTaskIdentifier = .invalid
+        bgTask = UIApplication.shared.beginBackgroundTask {
+            if bgTask != .invalid {
+                UIApplication.shared.endBackgroundTask(bgTask)
+                bgTask = .invalid
+            }
+        }
+        
         if SleepTimerService.shared.stopAfterCurrentTrack {
             SleepTimerService.shared.cancel()
             pause()
+            if bgTask != .invalid {
+                UIApplication.shared.endBackgroundTask(bgTask)
+            }
             return
         }
+        
         next()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if bgTask != .invalid {
+                UIApplication.shared.endBackgroundTask(bgTask)
+            }
+        }
     }
     
     private func updateNowPlayingInfo() {

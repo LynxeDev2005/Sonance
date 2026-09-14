@@ -68,6 +68,8 @@
 	<!-- Modern Full Screen Resolution via Launch Screen Storyboard & Plist -->
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>
+	<key>UILaunchImageFile</key>
+	<string>SplashIcon</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -81,5 +83,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 </dict>
 </plist>

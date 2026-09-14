@@ -1,10 +1,12 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         AudioSessionManager.shared.configureAudioSession()
+        application.beginReceivingRemoteControlEvents()
         return true
     }
 }
