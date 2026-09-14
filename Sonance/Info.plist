@@ -65,11 +65,14 @@
 		</dict>
 	</array>
 
-	<!-- Modern Full Screen Resolution via Launch Screen Storyboard & Plist -->
-	<key>UILaunchStoryboardName</key>
-	<string>SplashScreen</string>
-	<key>UILaunchImageFile</key>
-	<string>SplashIcon</string>
+	<!-- Enforce Full Screen Scaling with Asset Catalog Only -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIImageName</key>
+		<string>SplashIcon</string>
+		<key>UIColorName</key>
+		<string>LaunchScreenBackground</string>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
